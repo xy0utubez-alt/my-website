@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="マイページ">
+<meta name="theme-color" content="#eceff3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1420" media="(prefers-color-scheme: dark)">
+<title>マイページ</title>
+<style>
+:root{
+  --bg:#eceff3; --card:#fbfcfd; --ink:#16213a; --sub:#5a6578; --line:#d3d9e2;
+  --accent:#2f5bd8; --accent-ink:#fff; --danger:#c8372d; --sat:#2f5bd8; --sun:#c8372d;
+  --hover:#e4e9f1;
+  --font:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Noto Sans JP",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0f1420; --card:#171e2e; --ink:#e6ebf5; --sub:#98a3b8; --line:#2b3550;
+        --accent:#7aa2ff; --accent-ink:#0f1420; --danger:#ff7a70; --sat:#7aa2ff; --sun:#ff7a70; --hover:#1f2840}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--font);-webkit-text-size-adjust:100%;overscroll-behavior:none}
+[hidden]{display:none!important}
+button,input,textarea{font:inherit;color:inherit}
+input,textarea{font-size:16px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-height:44px;outline:none;-webkit-appearance:none;appearance:none}
+input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn{min-height:44px;min-width:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--card);cursor:pointer}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.danger{color:var(--danger)}
+.btn[disabled]{opacity:.5;cursor:default}
+.muted{color:var(--sub);font-size:14px}
+
+/* ---- ログイン ---- */
+.auth{min-height:100dvh;display:grid;place-items:center;padding:calc(24px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))}
+.auth form{width:100%;max-width:380px;display:grid;gap:12px}
+.auth h1{margin:0 0 4px;font-size:26px;letter-spacing:.02em}
+.msg{min-height:1.5em;font-size:14px;color:var(--danger);margin:0}
+.msg.ok{color:var(--sub)}
+.restore{margin-top:8px;text-align:center}
+.restore label{text-decoration:underline;cursor:pointer;color:var(--sub);font-size:14px}
+
+/* ---- アプリ全体 ---- */
+#app{height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"head" "main" "nav";
+  padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+header{grid-area:head;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 16px 8px;border-bottom:1px solid var(--line);background:var(--card)}
+header h1{margin:0;font-size:18px}
+nav{grid-area:nav;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;min-height:52px;border:0;background:none;cursor:pointer;color:var(--sub);font-size:14px}
+nav button[aria-current="true"]{color:var(--accent);font-weight:700;box-shadow:inset 0 3px 0 var(--accent)}
+main{grid-area:main;min-height:0;position:relative}
+main>section{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch}
+
+@media (min-width:768px){
+  #app{grid-template-columns:180px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"head head" "nav main"}
+  header{padding-top:12px}
+  nav{flex-direction:column;border-top:0;border-right:1px solid var(--line);padding:8px 0}
+  nav button{flex:none;text-align:left;padding:0 20px;min-height:48px}
+  nav button[aria-current="true"]{box-shadow:inset 3px 0 0 var(--accent)}
+}
+
+/* ---- メモ ---- */
+#v-notes{overflow:hidden}
+.notes{display:grid;grid-template-columns:minmax(0,1fr);height:100%}
+.notes .list,.notes .editor{min-height:0;display:flex;flex-direction:column}
+.notes .editor{display:none;padding:12px 16px;gap:8px;background:var(--card)}
+.notes.editing .list{display:none}
+.notes.editing .editor{display:flex}
+.bar{display:flex;gap:8px;padding:12px 16px}
+.items{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 16px 16px;display:grid;gap:6px;align-content:start}
+.item{text-align:left;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:10px 12px;cursor:pointer;display:block;width:100%;min-height:44px}
+.item[aria-current="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.item b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item span{display:block;font-size:13px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editor .row{display:flex;gap:8px;align-items:center}
+.editor .title{font-weight:700;font-size:18px}
+.editor textarea{flex:1;resize:none;line-height:1.7}
+.back{display:inline-flex}
+.empty{margin:auto;color:var(--sub);text-align:center;padding:24px}
+@media (min-width:768px){
+  .notes{grid-template-columns:300px minmax(0,1fr)}
+  .notes .list{border-right:1px solid var(--line)}
+  .notes .editor{display:flex!important}
+  .notes.editing .list{display:flex}
+  .back{display:none}
+}
+
+/* ---- カレンダー ---- */
+.cal{display:grid;gap:16px;padding:16px;grid-template-columns:minmax(0,1fr);align-content:start}
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.cal-head h2{margin:0;font-size:20px;flex:1;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.dow{text-align:center;font-size:13px;color:var(--sub);padding:4px 0}
+.dow:first-child,.day.sun{color:var(--sun)}
+.dow:nth-child(7),.day.sat{color:var(--sat)}
+.day{aspect-ratio:1/1;min-height:44px;border:1px solid transparent;border-radius:8px;background:var(--card);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:2px}
+.day.blank{background:none;cursor:default}
+.day.today{border-color:var(--accent);font-weight:700}
+.day.sel{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.dots{display:flex;gap:3px;height:6px}
+.dots i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px;align-content:start}
+.panel h3{margin:0;font-size:17px}
+.ev{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.ev .t{color:var(--sub);font-size:14px;min-width:3.2em}
+.ev .n{flex:1;word-break:break-word}
+.add{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px}
+.add .btn{grid-column:1/-1}
+@media (min-width:768px){.cal{grid-template-columns:minmax(0,1fr) 340px;max-width:1100px}}
+
+/* ---- 設定 ---- */
+.set{padding:16px;display:grid;gap:16px;max-width:560px;align-content:start}
+.set .panel p{margin:0}
+.set .actions{display:flex;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+
+<div id="auth" class="auth" hidden>
+  <form id="authForm" autocomplete="on">
+    <h1>マイページ</h1>
+    <p id="authLead" class="muted"></p>
+    <input id="u" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="ユーザー名" required>
+    <input id="p" name="password" type="password" autocomplete="current-password" placeholder="パスワード" required>
+    <input id="p2" type="password" autocomplete="new-password" placeholder="パスワード(確認)" hidden>
+    <p id="authMsg" class="msg" role="alert"></p>
+    <button id="authBtn" class="btn primary" type="submit">ログイン</button>
+    <div class="restore"><label>バックアップから復元<input id="restoreFile" type="file" accept="application/json,.json" hidden></label></div>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <h1 id="pageTitle">メモ</h1>
+    <button id="lockBtn" class="btn" type="button">ロック</button>
+  </header>
+  <nav id="nav" aria-label="メニュー">
+    <button data-v="notes" aria-current="true">メモ</button>
+    <button data-v="cal">カレンダー</button>
+    <button data-v="set">設定</button>
+  </nav>
+  <main>
+    <section id="v-notes"></section>
+    <section id="v-cal" hidden></section>
+    <section id="v-set" hidden></section>
+  </main>
+</div>
+
+<script>
+"use strict";
+/* ========== 暗号まわり(Web Crypto: PBKDF2 → AES-GCM) ========== */
+const enc = new TextEncoder(), dec = new TextDecoder();
+const ITER = 310000;
+function b64(buf){const a=new Uint8Array(buf);let s="";for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)}
+function unb64(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
+async function derive(user,pass,salt){
+  const m=await crypto.subtle.importKey("raw",enc.encode(user+"\u0000"+pass),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:ITER,hash:"SHA-256"},m,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encrypt(key,obj){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,enc.encode(JSON.stringify(obj)));
+  return b64(iv)+"."+b64(ct);
+}
+async function decrypt(key,str){
+  const [iv,ct]=str.split(".");
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(iv)},key,unb64(ct));
+  return JSON.parse(dec.decode(pt));
+}
+
+/* ========== 状態・保存 ========== */
+const VAULT="mypage_vault_v1";
+let key=null, salt=null, state=null, fails=0, idleTimer=null;
+const IDLE_MS=10*60*1000;
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function readVault(){try{return JSON.parse(localStorage.getItem(VAULT))}catch{return null}}
+async function persist(){
+  if(!key||!state)return;
+  localStorage.setItem(VAULT,JSON.stringify({v:1,salt:b64(salt),data:await encrypt(key,state)}));
+}
+let saveT=null;
+function save(){clearTimeout(saveT);saveT=setTimeout(persist,300)}
+
+function h(tag,props={},...kids){
+  const e=document.createElement(tag);
+  for(const [k,v] of Object.entries(props)){
+    if(k==="class")e.className=v;
+    else if(k==="value")e.value=v;
+    else if(k.startsWith("on"))e.addEventListener(k.slice(2),v);
+    else if(v===true)e.setAttribute(k,"");
+    else if(v!==false&&v!=null)e.setAttribute(k,v);
+  }
+  for(const c of kids.flat())if(c!=null)e.append(c);
+  return e;
+}
+
+/* ========== 認証 ========== */
+function showAuth(){
+  $("#app").hidden=true; $("#auth").hidden=false;
+  const first=!readVault();
+  $("#authLead").textContent=first?"初回設定です。ユーザー名とパスワードを決めてください(8文字以上)。":"";
+  $("#authBtn").textContent=first?"設定して開始":"ログイン";
+  $("#p2").hidden=!first; $("#p2").required=first;
+  $("#p").autocomplete=first?"new-password":"current-password";
+  $("#authMsg").textContent="";
+  $("#u").value=""; $("#p").value=""; $("#p2").value="";
+}
+function msg(t,ok){const m=$("#authMsg");m.textContent=t;m.className="msg"+(ok?" ok":"")}
+
+$("#authForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!window.crypto||!crypto.subtle){msg("この環境では暗号機能が使えません。https で開いてください。");return}
+  const u=$("#u").value.trim(), p=$("#p").value, v=readVault(), btn=$("#authBtn");
+  btn.disabled=true; msg("確認中…",true);
+  try{
+    if(!v){
+      if(!u){msg("ユーザー名を入力してください。");return}
+      if(p.length<8){msg("パスワードは8文字以上にしてください。");return}
+      if(p!==$("#p2").value){msg("確認用パスワードが一致しません。");return}
+      salt=crypto.getRandomValues(new Uint8Array(16));
+      key=await derive(u,p,salt);
+      state={notes:[],events:[]};
+      await persist(); enter();
+    }else{
+      const s=unb64(v.salt), k=await derive(u,p,s);
+      try{
+        state=await decrypt(k,v.data); salt=s; key=k; fails=0; enter();
+      }catch{
+        fails++; await sleep(Math.min(fails*800,6000));
+        msg("ユーザー名またはパスワードが違います。");
+      }
+    }
+  }finally{btn.disabled=false}
+});
+
+$("#restoreFile").addEventListener("change",async e=>{
+  const f=e.target.files[0]; e.target.value=""; if(!f)return;
+  try{
+    const j=JSON.parse(await f.text());
+    if(!j.salt||!j.data)throw 0;
+    if(readVault()&&!confirm("この端末のデータをバックアップで置き換えます。よろしいですか?"))return;
+    localStorage.setItem(VAULT,JSON.stringify(j));
+    showAuth(); msg("復元しました。バックアップ時のユーザー名とパスワードでログインしてください。",true);
+  }catch{msg("バックアップファイルを読み込めませんでした。")}
+});
+
+function enter(){
+  $("#auth").hidden=true; $("#app").hidden=false;
+  $("#u").value=""; $("#p").value=""; $("#p2").value=""; msg("");
+  curNote=null; q=""; setView("notes"); resetIdle();
+}
+async function lock(){
+  clearTimeout(saveT); await persist();
+  key=null; state=null; salt=null; curNote=null; clearTimeout(idleTimer);
+  for(const id of ["v-notes","v-cal","v-set"])$("#"+id).replaceChildren();
+  showAuth();
+}
+function resetIdle(){clearTimeout(idleTimer);if(key)idleTimer=setTimeout(lock,IDLE_MS)}
+["pointerdown","keydown","touchstart"].forEach(ev=>addEventListener(ev,resetIdle,{passive:true}));
+$("#lockBtn").addEventListener("click",lock);
+
+/* ========== ナビ ========== */
+const TITLES={notes:"メモ",cal:"カレンダー",set:"設定"};
+function setView(v){
+  for(const b of document.querySelectorAll("#nav button"))b.setAttribute("aria-current",String(b.dataset.v===v));
+  for(const k of ["notes","cal","set"])$("#v-"+k).hidden=k!==v;
+  $("#pageTitle").textContent=TITLES[v];
+  if(v==="notes")renderNotes();
+  if(v==="cal")renderCal();
+  if(v==="set")renderSet();
+}
+$("#nav").addEventListener("click",e=>{const b=e.target.closest("button");if(b)setView(b.dataset.v)});
+
+/* ========== メモ帳 ========== */
+let curNote=null, q="";
+const fmt=t=>new Date(t).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
+function renderNotes(){
+  const root=$("#v-notes"); root.replaceChildren();
+  const list=h("div",{class:"list"},
+    h("div",{class:"bar"},
+      h("input",{type:"search",placeholder:"メモを検索",value:q,"aria-label":"メモを検索",oninput:e=>{q=e.target.value;renderList()}}),
+      h("button",{class:"btn primary",type:"button","aria-label":"新しいメモ",onclick:newNote},"新規")),
+    h("div",{class:"items",id:"items"}));
+  const ed=h("div",{class:"editor",id:"editor"});
+  root.append(h("div",{class:"notes"+(curNote?" editing":""),id:"notesWrap"},list,ed));
+  renderList(); renderEditor();
+}
+function renderList(){
+  const box=$("#items"); if(!box)return; box.replaceChildren();
+  const k=q.trim().toLowerCase();
+  const notes=state.notes.filter(n=>!k||(n.title+"\n"+n.body).toLowerCase().includes(k)).sort((a,b)=>b.updated-a.updated);
+  if(!notes.length){box.append(h("div",{class:"empty"},state.notes.length?"一致するメモはありません。":"メモはまだありません。「新規」から作成できます。"));return}
+  for(const n of notes){
+    const first=n.body.split("\n").find(l=>l.trim())||"";
+    box.append(h("button",{class:"item",type:"button","aria-current":String(n.id===curNote),onclick:()=>{curNote=n.id;renderNotes()}},
+      h("b",{},n.title||first||"無題のメモ"),h("span",{},fmt(n.updated)+"  "+first)));
+  }
+}
+function renderEditor(){
+  const ed=$("#editor"); ed.replaceChildren();
+  const n=state.notes.find(x=>x.id===curNote);
+  if(!n){ed.append(h("div",{class:"empty"},"メモを選ぶか、新規作成してください。"));return}
+  ed.append(
+    h("div",{class:"row"},
+      h("button",{class:"btn back",type:"button",onclick:()=>{curNote=null;renderNotes()}},"戻る"),
+      h("span",{class:"muted",style:"flex:1;text-align:right"},"更新 "+fmt(n.updated)),
+      h("button",{class:"btn danger",type:"button",onclick:()=>{if(confirm("このメモを削除しますか?")){state.notes=state.notes.filter(x=>x.id!==n.id);curNote=null;save();renderNotes()}}},"削除")),
+    h("input",{class:"title",placeholder:"タイトル",value:n.title,"aria-label":"タイトル",oninput:e=>{n.title=e.target.value;touch(n)}}),
+    h("textarea",{placeholder:"ここにメモを書きます",value:n.body,"aria-label":"本文",oninput:e=>{n.body=e.target.value;touch(n)}}));
+}
+function touch(n){n.updated=Date.now();save();renderList()}
+function newNote(){
+  const n={id:uid(),title:"",body:"",updated:Date.now()};
+  state.notes.push(n); curNote=n.id; q=""; save(); renderNotes();
+  const t=document.querySelector(".editor .title"); if(t)t.focus();
+}
+
+/* ========== カレンダー ========== */
+const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+let cal=(()=>{const d=new Date();d.setDate(1);return d})();
+let sel=ymd(new Date());
+function renderCal(){
+  const root=$("#v-cal"); root.replaceChildren();
+  const y=cal.getFullYear(), m=cal.getMonth(), today=ymd(new Date());
+  const first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+  const byDate={}; for(const e of state.events)(byDate[e.date]??=[]).push(e);
+
+  const grid=h("div",{class:"grid"});
+  "日月火水木金土".split("").forEach(c=>grid.append(h("div",{class:"dow"},c)));
+  for(let i=0;i<first;i++)grid.append(h("div",{class:"day blank"}));
+  for(let d=1;d<=days;d++){
+    const date=ymd(new Date(y,m,d)), dow=new Date(y,m,d).getDay(), n=(byDate[date]||[]).length;
+    grid.append(h("button",{type:"button",class:"day"+(dow===0?" sun":dow===6?" sat":"")+(date===today?" today":"")+(date===sel?" sel":""),
+      "aria-label":`${m+1}月${d}日 予定${n}件`,onclick:()=>{sel=date;renderCal()}},
+      h("span",{},String(d)),
+      h("span",{class:"dots"},...Array.from({length:Math.min(n,3)},()=>h("i")))));
+  }
+  const move=n=>{cal=new Date(y,m+n,1);renderCal()};
+  const left=h("div",{},
+    h("div",{class:"cal-head"},
+      h("button",{class:"btn",type:"button","aria-label":"前の月",onclick:()=>move(-1)},"‹"),
+      h("h2",{},`${y}年${m+1}月`),
+      h("button",{class:"btn",type:"button",onclick:()=>{const t=new Date();cal=new Date(t.getFullYear(),t.getMonth(),1);sel=ymd(t);renderCal()}},"今日"),
+      h("button",{class:"btn",type:"button","aria-label":"次の月",onclick:()=>move(1)},"›")),
+    grid);
+
+  const evs=state.events.filter(e=>e.date===sel).sort((a,b)=>(a.time||"99").localeCompare(b.time||"99"));
+  const label=new Date(sel+"T00:00").toLocaleDateString("ja-JP",{month:"long",day:"numeric",weekday:"short"});
+  const tIn=h("input",{type:"time","aria-label":"時刻(任意)"}), nIn=h("input",{placeholder:"予定を入力","aria-label":"予定"});
+  const add=()=>{
+    const t=nIn.value.trim(); if(!t){nIn.focus();return}
+    state.events.push({id:uid(),date:sel,time:tIn.value,title:t}); save(); renderCal();
+  };
+  nIn.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing)add()});
+  const panel=h("div",{class:"panel"},
+    h("h3",{},label),
+    evs.length?h("div",{},...evs.map(e=>h("div",{class:"ev"},
+        h("span",{class:"t"},e.time||"終日"),h("span",{class:"n"},e.title),
+        h("button",{class:"btn danger",type:"button","aria-label":"予定を削除",onclick:()=>{state.events=state.events.filter(x=>x.id!==e.id);save();renderCal()}},"削除"))))
+      :h("p",{class:"muted",style:"margin:0"},"この日の予定はありません。"),
+    h("div",{class:"add"},tIn,nIn,h("button",{class:"btn primary",type:"button",onclick:add},"予定を追加")));
+  root.append(h("div",{class:"cal"},left,panel));
+}
+
+/* ========== 設定(バックアップ・認証情報変更) ========== */
+function renderSet(){
+  const root=$("#v-set"); root.replaceChildren();
+  const fileIn=h("input",{type:"file",accept:"application/json,.json",hidden:true,onchange:async e=>{
+    const f=e.target.files[0]; e.target.value=""; if(!f)return;
+    try{
+      const j=JSON.parse(await f.text()); if(!j.salt||!j.data)throw 0;
+      if(!confirm("この端末のデータをバックアップで置き換え、ロックします。よろしいですか?"))return;
+      localStorage.setItem(VAULT,JSON.stringify(j)); key=null; state=null; await lock();
+      msg("復元しました。バックアップ時のユーザー名とパスワードでログインしてください。",true);
+    }catch{alert("バックアップファイルを読み込めませんでした。")}
+  }});
+  const nu=h("input",{placeholder:"新しいユーザー名",autocomplete:"username"}),
+        np=h("input",{type:"password",placeholder:"新しいパスワード(8文字以上)",autocomplete:"new-password"}),
+        info=h("p",{class:"muted"});
+  root.append(h("div",{class:"set"},
+    h("div",{class:"panel"},
+      h("h3",{},"バックアップ"),
+      h("p",{class:"muted"},"データはこの端末のブラウザ内に暗号化して保存されています。別の端末で使うときは、ここで書き出したファイルをもう一方の端末で読み込みます。"),
+      h("div",{class:"actions"},
+        h("button",{class:"btn primary",type:"button",onclick:async()=>{
+          await persist();
+          const blob=new Blob([localStorage.getItem(VAULT)],{type:"application/json"});
+          const a=h("a",{href:URL.createObjectURL(blob),download:`mypage-backup-${ymd(new Date())}.json`});
+          document.body.append(a);a.click();a.remove();
+        }},"書き出す"),
+        h("button",{class:"btn",type:"button",onclick:()=>fileIn.click()},"読み込む"),fileIn)),
+    h("div",{class:"panel"},
+      h("h3",{},"ユーザー名とパスワードの変更"),
+      nu,np,info,
+      h("button",{class:"btn",type:"button",onclick:async()=>{
+        const u=nu.value.trim(),p=np.value;
+        if(!u||p.length<8){info.textContent="ユーザー名を入力し、パスワードは8文字以上にしてください。";return}
+        salt=crypto.getRandomValues(new Uint8Array(16)); key=await derive(u,p,salt); await persist();
+        nu.value="";np.value="";info.textContent="変更しました。次回から新しい情報でログインしてください。";
+      }},"変更する")),
+    h("div",{class:"panel"},
+      h("p",{class:"muted"},"操作がない状態が10分続くと自動でロックされます。"))));
+}
+
+/* ========== 起動 ========== */
+showAuth();
+</script>
+</body>
+</html>
